@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Comment Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a2e;
+            --bg-input: #16162a;
+            --border: #2a2a45;
+            --border-focus: #7c3aed;
+            --text-primary: #e8e8f0;
+            --text-secondary: #9898b0;
+            --text-muted: #6868a0;
+            --accent: #7c3aed;
+            --accent-hover: #9333ea;
+            --accent-glow: rgba(124, 58, 237, 0.3);
+            --gradient-start: #7c3aed;
+            --gradient-end: #ec4899;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-glow {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 30%, rgba(124, 58, 237, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 70%, rgba(236, 72, 153, 0.04) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-2%, -2%); }
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: inline-block;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 300;
+        }
+
+        /* Input section */
+        .input-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            transition: border-color 0.3s;
+        }
+
+        .input-card:focus-within {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .input-label {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+
+        .url-input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 15px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .url-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .url-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        .analyze-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Progress section */
+        .progress-section {
+            display: none;
+            margin-bottom: 32px;
+        }
+
+        .progress-section.visible {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 32px;
+            text-align: center;
+        }
+
+        .progress-bar-track {
+            height: 4px;
+            background: var(--bg-input);
+            border-radius: 2px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .progress-bar-fill.indeterminate {
+            width: 30%;
+            animation: indeterminate 1.5s ease-in-out infinite;
+        }
+
+        @keyframes indeterminate {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+
+        .progress-status {
+            color: var(--text-secondary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .comment-count {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .comment-count-label {
+            color: var(--text-muted);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Results section */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .results-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px;
+            margin-bottom: 20px;
+        }
+
+        .results-card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Markdown content styling */
+        .analysis-content h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .analysis-content h2:first-child {
+            margin-top: 0;
+        }
+
+        .analysis-content p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+
+        .analysis-content ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .analysis-content ul li {
+            color: var(--text-secondary);
+            padding: 8px 0 8px 20px;
+            position: relative;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .analysis-content ul li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 16px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+        }
+
+        .analysis-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Error styling */
+        .error-card {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 16px;
+            padding: 24px 32px;
+            margin-bottom: 32px;
+            display: none;
+        }
+
+        .error-card.visible {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .error-card p {
+            color: var(--error);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .error-card .error-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        /* New analysis button */
+        .new-analysis-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .new-analysis-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 32px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container { padding: 24px 16px; }
+            .input-wrapper { flex-direction: column; }
+            .analyze-btn { width: 100%; }
+            .results-card { padding: 24px; }
+            .header h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-icon">💬</div>
+            <h1>Instagram Comment Analyzer</h1>
+            <p>Cole a URL de um post e descubra o mood dos comentários</p>
+        </div>
+
+        <!-- Input -->
+        <div class="input-card" id="inputCard">
+            <label class="input-label">URL do Post</label>
+            <div class="input-wrapper">
+                <input type="text"
+                       class="url-input"
+                       id="urlInput"
+                       placeholder="https://www.instagram.com/p/..."
+                       autocomplete="off"
+                       spellcheck="false">
+                <button class="analyze-btn" id="analyzeBtn" onclick="startAnalysis()">
+                    Analisar
+                </button>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div class="error-card" id="errorCard">
+            <p class="error-title">❌ Erro</p>
+            <p id="errorMessage"></p>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-section" id="progressSection">
+            <div class="progress-card">
+                <div id="commentCountDisplay" style="display: none;">
+                    <div class="comment-count" id="commentCount">0</div>
+                    <div class="comment-count-label">comentários extraídos</div>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill indeterminate" id="progressBar"></div>
+                </div>
+                <div class="progress-status">
+                    <span class="spinner"></span>
+                    <span id="progressMessage">Iniciando...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results-section" id="resultsSection">
+            <div class="results-card">
+                <div class="analysis-content" id="analysisContent"></div>
+            </div>
+            <button class="new-analysis-btn" onclick="resetForm()">
+                Analisar outro post
+            </button>
+        </div>
+
+        <div class="footer">
+            Instagram Comment Analyzer &middot; Powered by OpenAI
+        </div>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const progressSection = document.getElementById('progressSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const errorCard = document.getElementById('errorCard');
+        const inputCard = document.getElementById('inputCard');
+
+        let pollInterval = null;
+
+        // Allow Enter key to submit
+        urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') startAnalysis();
+        });
+
+        async function startAnalysis() {
+            const url = urlInput.value.trim();
+            if (!url) {
+                showError('Por favor, insira a URL de um post do Instagram.');
+                return;
+            }
+
+            // Reset UI
+            hideError();
+            resultsSection.classList.remove('visible');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analisando...';
+            progressSection.classList.add('visible');
+            document.getElementById('commentCountDisplay').style.display = 'none';
+            document.getElementById('progressMessage').textContent = 'Conectando ao Instagram...';
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erro desconhecido');
+                }
+
+                // Start polling for status
+                pollJobStatus(data.job_id);
+
+            } catch (err) {
+                showError(err.message);
+                resetButton();
+                progressSection.classList.remove('visible');
+            }
+        }
+
+        function pollJobStatus(jobId) {
+            if (pollInterval) clearInterval(pollInterval);
+
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/status/${jobId}`);
+                    const data = await response.json();
+
+                    // Update progress message
+                    document.getElementById('progressMessage').textContent = data.progress_message;
+
+                    // Update comment count
+                    if (data.comment_count > 0) {
+                        document.getElementById('commentCountDisplay').style.display = 'block';
+                        document.getElementById('commentCount').textContent = data.comment_count;
+                    }
+
+                    // Check if done
+                    if (data.status === 'done') {
+                        clearInterval(pollInterval);
+                        progressSection.classList.remove('visible');
+                        showResults(data.result_html);
+                        resetButton();
+                    }
+
+                    // Check if error
+                    if (data.status === 'error') {
+                        clearInterval(pollInterval);
+                        progressSection.classList.remove('visible');
+                        showError(data.error);
+                        resetButton();
+                    }
+
+                } catch (err) {
+                    clearInterval(pollInterval);
+                    showError('Perda de conexão com o servidor.');
+                    resetButton();
+                    progressSection.classList.remove('visible');
+                }
+            }, 1500);
+        }
+
+        function showResults(html) {
+            document.getElementById('analysisContent').innerHTML = html;
+            resultsSection.classList.add('visible');
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            errorCard.classList.add('visible');
+        }
+
+        function hideError() {
+            errorCard.classList.remove('visible');
+        }
+
+        function resetButton() {
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = 'Analisar';
+        }
+
+        function resetForm() {
+            urlInput.value = '';
+            resultsSection.classList.remove('visible');
+            hideError();
+            urlInput.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

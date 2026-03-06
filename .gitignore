@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+results/
+session-*
+
+.instaloader_session
+test_*.py
+
