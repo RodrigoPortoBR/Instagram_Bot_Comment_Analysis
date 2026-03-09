@@ -82,9 +82,19 @@ def run_analysis(job: AnalysisJob):
         job.status = "analyzing"
         result = analyze_comments(comments)
 
+        # Create header string
+        header = (
+            f"# Análise de Comentários — Instagram\n\n"
+            f"- **Post**: [{job.url}]({job.url})\n"
+            f"- **Data da análise**: {datetime.now().strftime('%d/%m/%Y às %H:%M')}\n"
+            f"- **Comentários analisados**: {len(comments)}\n\n---\n\n"
+        )
+        
+        full_markdown = header + result
+
         # Convert markdown to HTML
-        job.result_markdown = result
-        job.result_html = markdown.markdown(result, extensions=["tables", "fenced_code"])
+        job.result_markdown = full_markdown
+        job.result_html = markdown.markdown(full_markdown, extensions=["tables", "fenced_code"])
 
         # Save to file
         try:
@@ -93,14 +103,7 @@ def run_analysis(job: AnalysisJob):
             results_dir.mkdir(exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filepath = results_dir / f"analise_{shortcode}_{timestamp}.md"
-
-            header = (
-                f"# Análise de Comentários — Instagram\n"
-                f"- **Post**: {job.url}\n"
-                f"- **Data da análise**: {datetime.now().strftime('%d/%m/%Y às %H:%M')}\n"
-                f"- **Comentários analisados**: {len(comments)}\n\n---\n\n"
-            )
-            filepath.write_text(header + result, encoding="utf-8")
+            filepath.write_text(full_markdown, encoding="utf-8")
         except Exception:
             pass  # Non-critical
 

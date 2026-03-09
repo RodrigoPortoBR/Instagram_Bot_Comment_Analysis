@@ -49,7 +49,7 @@ BANNER = r"""
 """
 
 
-def save_result(shortcode: str, analysis: str, comment_count: int) -> str:
+def save_result(shortcode: str, full_markdown: str) -> str:
     """Salva o resultado da análise em um arquivo .txt."""
     results_dir = Path(__file__).parent / "results"
     results_dir.mkdir(exist_ok=True)
@@ -58,15 +58,7 @@ def save_result(shortcode: str, analysis: str, comment_count: int) -> str:
     filename = f"analise_{shortcode}_{timestamp}.md"
     filepath = results_dir / filename
 
-    header = (
-        f"# Análise de Comentários — Instagram\n"
-        f"- **Post**: https://www.instagram.com/p/{shortcode}/\n"
-        f"- **Data da análise**: {datetime.now().strftime('%d/%m/%Y às %H:%M')}\n"
-        f"- **Comentários analisados**: {comment_count}\n\n"
-        f"---\n\n"
-    )
-
-    filepath.write_text(header + analysis, encoding="utf-8")
+    filepath.write_text(full_markdown, encoding="utf-8")
     return str(filepath)
 
 
@@ -130,15 +122,23 @@ def main():
         console.print(f"\n[red]❌ Erro na análise: {e}[/red]")
         sys.exit(1)
 
+    header = (
+        f"# Análise de Comentários — Instagram\n\n"
+        f"- **Post**: [https://www.instagram.com/p/{shortcode}/](https://www.instagram.com/p/{shortcode}/)\n"
+        f"- **Data da análise**: {datetime.now().strftime('%d/%m/%Y às %H:%M')}\n"
+        f"- **Comentários analisados**: {len(comments)}\n\n---\n\n"
+    )
+    full_markdown = header + analysis
+
     # === ETAPA 3: Resultados ===
     console.print()
     console.print(Rule("Resultado da Análise", style="green"))
     console.print()
-    console.print(Markdown(analysis))
+    console.print(Markdown(full_markdown))
     console.print()
 
     # Salvar resultado
-    filepath = save_result(shortcode, analysis, len(comments))
+    filepath = save_result(shortcode, full_markdown)
     console.print(
         Panel(
             f"[green]📁 Resultado salvo em:[/green]\n[bold]{filepath}[/bold]",
