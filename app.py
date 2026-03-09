@@ -48,6 +48,19 @@ class AnalysisJob:
 
 def run_analysis(job: AnalysisJob):
     """Run the full analysis pipeline in a background thread."""
+    import sys
+    import os
+    
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    
+    try:
+        fnull = open(os.devnull, 'w', encoding='utf-8')
+        sys.stdout = fnull
+        sys.stderr = fnull
+    except Exception:
+        fnull = None
+
     try:
         # Step 1: Extract comments
         job.status = "extracting"
@@ -96,12 +109,18 @@ def run_analysis(job: AnalysisJob):
 
     except Exception as e:
         import traceback
-        with open("error_log.txt", "w", encoding="utf-8") as f:
-            f.write(traceback.format_exc())
-            f.write(f"\nError string: {str(e)}")
+        full_trace = traceback.format_exc()
         job.status = "error"
-        job.error = str(e)
+        job.error = f"Error: {str(e)}\n\nTraceback:\n{full_trace}"
         job.progress_message = "Erro na análise."
+    finally:
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+        if fnull:
+            try:
+                fnull.close()
+            except Exception:
+                pass
 
 
 @app.route("/")
