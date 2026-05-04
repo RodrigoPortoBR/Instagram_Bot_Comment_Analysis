@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 results/
 session-*
+ig_session.json
 
 .instaloader_session
 test_*.py
