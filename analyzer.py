@@ -16,7 +16,9 @@ Suas análises devem ser:
 - Objetivas e sem julgamento moral
 - Focadas nos padrões e temas que emergem dos comentários"""
 
-ANALYSIS_PROMPT = """Analise os seguintes {count} comentários de um post do Instagram.
+ANALYSIS_PROMPT = """Analise os seguintes {count} comentários de um post do Instagram. A quantidade de likes (curtidas) de cada comentário está indicada entre colchetes, por exemplo: [15 likes]. 
+
+ATENÇÃO: Dê um peso significativamente maior aos comentários que possuem mais likes, pois eles representam uma opinião validada por mais pessoas.
 
 COMENTÁRIOS:
 {comments}
@@ -25,11 +27,11 @@ COMENTÁRIOS:
 
 Gere a seguinte análise em português brasileiro:
 
-1. **MOOD GERAL**: Classifique o sentimento predominante como um destes: POSITIVO, NEGATIVO, MISTO ou NEUTRO. Justifique em 1-2 frases.
+1. **MOOD GERAL**: Classifique o sentimento predominante como um destes: POSITIVO, NEGATIVO, MISTO ou NEUTRO. Justifique em 1-2 frases considerando o peso dos comentários mais curtidos.
 
-2. **RESUMO**: Escreva um parágrafo de 4-8 frases resumindo os principais pontos, temas e opiniões levantados nos comentários. Seja específico sobre o que as pessoas estão dizendo, cite padrões recorrentes e destaque os pontos mais relevantes.
+2. **RESUMO**: Escreva um parágrafo de 4-8 frases resumindo os principais pontos, temas e opiniões levantados nos comentários. Destaque as opiniões que receberam mais apoio (maior número de likes).
 
-3. **TÓPICOS PRINCIPAIS**: Liste os 3-7 temas/assuntos mais mencionados nos comentários, cada um com uma breve descrição de como aparecem nos comentários.
+3. **TÓPICOS PRINCIPAIS**: Liste os 3-7 temas/assuntos mais mencionados nos comentários, cada um com uma breve descrição de como aparecem. Destaque os temas dos comentários com mais engajamento.
 
 4. **DADOS**: Informe a proporção aproximada de comentários positivos, negativos e neutros (em porcentagem).
 
@@ -83,8 +85,10 @@ def _format_comments_for_prompt(comments: list[dict]) -> str:
     for i, c in enumerate(comments, 1):
         author = c.get("author", "anônimo")
         text = c.get("text", "").strip()
+        likes = c.get("likes", 0)
         if text:
-            lines.append(f"{i}. @{author}: {text}")
+            likes_info = f" [{likes} likes]" if likes > 0 else ""
+            lines.append(f"{i}. @{author}{likes_info}: {text}")
     return "\n".join(lines)
 
 

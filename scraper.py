@@ -24,22 +24,34 @@ def fetch_comments(url: str, ig_username: str | None = None, ig_password: str | 
 
     Args:
         url: URL completa do post do Instagram
-        ig_username: Username do Instagram (obrigatório para instagrapi)
-        ig_password: Password do Instagram (obrigatório para instagrapi)
+        ig_username: Username do Instagram
+        ig_password: Password do Instagram
         amount: Quantidade de comentários para extrair (0 = todos)
 
     Returns:
         Lista de dicts com {author, text, timestamp, likes}
     """
-    if not ig_username or not ig_password:
-        raise ValueError("Credenciais do Instagram são obrigatórias para essa extração. Preencha IG_USERNAME e IG_PASSWORD no arquivo .env.")
+    import os
+    ig_sessionid = os.getenv("IG_SESSIONID", "").strip() or None
+    
+    if not ig_sessionid and (not ig_username or not ig_password):
+        raise ValueError("Credenciais do Instagram são obrigatórias para essa extração. Preencha IG_USERNAME e IG_PASSWORD ou IG_SESSIONID no arquivo .env.")
 
     shortcode = extract_shortcode(url)
 
     cl = Client()
+    session_file = "ig_session.json"
+    
     try:
-        # Tenta login
-        cl.login(ig_username, ig_password)
+        if os.path.exists(session_file):
+            cl.load_settings(session_file)
+            
+        if ig_sessionid:
+            cl.login_by_sessionid(ig_sessionid)
+        else:
+            cl.login(ig_username, ig_password)
+            
+        cl.dump_settings(session_file)
     except Exception as e:
         raise RuntimeError(f"Falha de autenticação no Instagram: {e}")
 
